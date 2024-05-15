@@ -1,5 +1,8 @@
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script>
+// Include jQuery directly within the clubs.js file
+var script = document.createElement('script');
+script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js';
+script.onload = function() {
+    // Once jQuery is loaded, execute the rest of the script
     $(document).ready(function() {
 
         // Function to create and display club cards
@@ -168,4 +171,5 @@
         document.getElementById('button-thailand').addEventListener('click', () => toggleContainers('Thailand'));
 
     });
-</script>
+};
+document.head.appendChild(script);
