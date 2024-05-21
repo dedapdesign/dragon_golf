@@ -2,7 +2,7 @@
 var link = document.createElement('link');
 link.rel = 'stylesheet';
 link.type = 'text/css';
-link.href = 'styles.css'; // Replace 'styles.css' with the path to your CSS file
+link.href = '/styles.css'; // Replace 'styles.css' with the path to your CSS file
 document.head.appendChild(link);
 
 // Include jQuery directly within the clubs.js file
