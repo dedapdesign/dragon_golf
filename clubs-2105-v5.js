@@ -198,3 +198,5 @@ script.onload = function() {
 
     fetchClubs();
 });
+    };
+document.head.appendChild(script);
