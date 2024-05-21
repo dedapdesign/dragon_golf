@@ -1,79 +1,88 @@
-// Function to create and display club cards
-function displayClub(club) {
-    // Create card element
-    var card = document.createElement('div');
-    card.className = 'club-card';
+$(document).ready(function() {
+    let clubsData = [];
 
-    // Create image element
-    var image = document.createElement('img');
-    image.src = club.featuredImageURL;
-    image.className = 'club-image';
-    card.appendChild(image);
+    // Function to create and display club cards
+    function displayClub(club) {
+        var card = document.createElement('div');
+        card.className = 'club-card';
 
-    // Create name element
-    var name = document.createElement('h3');
-    name.textContent = club.name;
-    card.appendChild(name);
+        var image = document.createElement('img');
+        image.src = club.featuredImageURL;
+        image.className = 'club-image';
+        card.appendChild(image);
 
-    // Create country name element
-    var countryName = document.createElement('p');
-    countryName.textContent = club.countryName;
-    card.appendChild(countryName);
+        var content = document.createElement('div');
+        content.className = 'club-content';
 
-    // Append card to the clubs container
-    var coursesContainer = document.getElementById('courses-container');
-    coursesContainer.appendChild(card);
+        var name = document.createElement('h3');
+        name.textContent = club.name;
+        content.appendChild(name);
 
-    // Adjust the height of the container dynamically
-    adjustContainerHeight(coursesContainer);
-}
+        var countryName = document.createElement('p');
+        countryName.textContent = club.countryName;
+        content.appendChild(countryName);
 
-// CSS styles for club cards
-var clubStyles = `
-    /* Club container styles */
-    #courses-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-        gap: 16px;
-        padding: 16px;
+        card.appendChild(content);
+        document.getElementById('courses-container').appendChild(card);
     }
 
-    /* Club card styles */
-    .club-card {
-        background-color: #f8f8f8;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
+    function adjustContainerHeight(container) {
+        var cards = container.getElementsByClassName('club-card');
+        var numberOfCards = cards.length;
+        var cardHeight = cards[0]?.offsetHeight || 300;
+        var gap = 16;
+        var rows = Math.ceil(numberOfCards / 3);
+        var totalHeight = rows * (cardHeight + gap) - gap;
+        container.style.height = totalHeight + 'px';
+        container.style.setProperty('height', 'auto', 'important');
     }
 
-    .club-card:hover {
-        transform: translateY(-4px);
+    function fetchClubs() {
+        $.ajax({
+            url: 'https://asia-southeast1-dragon-golf-international.cloudfunctions.net/getCourses',
+            method: 'GET',
+            success: function(data) {
+                clubsData = data;
+                displayClubsByCountry('all');
+                updateFilterChips();
+            },
+            error: function(error) {
+                console.error('Error fetching clubs:', error);
+            }
+        });
     }
 
-    .club-card img {
-        width: 100%;
-        height: auto;
-        border-radius: 8px;
-        margin-bottom: 12px;
-        padding: 0; /* Remove padding around the image */
+    function displayClubsByCountry(country) {
+        var coursesContainer = document.getElementById('courses-container');
+        coursesContainer.innerHTML = '';
+        var filteredClubs = country === 'all' ? clubsData : clubsData.filter(club => club.countryName === country);
+        filteredClubs.forEach(displayClub);
+        adjustContainerHeight(coursesContainer);
     }
 
-    .club-card h3 {
-        margin-top: 16px; /* Add margin only at the top of the name */
-        margin-bottom: 8px;
-        font-size: 1rem; /* Change name font size to 1rem */
+    function updateFilterChips() {
+        const countryCount = clubsData.reduce((acc, club) => {
+            acc[club.countryName] = (acc[club.countryName] || 0) + 1;
+            return acc;
+        }, {});
+
+        $('.filter-chip').each(function() {
+            var country = $(this).data('country');
+            if (country === 'all') {
+                $(this).text(`All (${clubsData.length})`);
+            } else {
+                var count = countryCount[country] || 0;
+                $(this).text(`${country} (${count})`);
+            }
+        });
     }
 
-    .club-card p {
-        margin-bottom: 16px; /* Add margin only at the bottom of the countryName */
-        font-size: 1rem;
-        color: #666;
-    }
-`;
+    $('.filter-chip').click(function() {
+        $('.filter-chip').removeClass('selected');
+        $(this).addClass('selected');
+        var country = $(this).data('country');
+        displayClubsByCountry(country);
+    });
 
-// Create a <style> element and append CSS styles to it
-var styleElement = document.createElement('style');
-styleElement.textContent = clubStyles;
-
-// Append the <style> element to the document's <head>
-document.head.appendChild(styleElement);
+    fetchClubs();
+});
