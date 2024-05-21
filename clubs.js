@@ -1,96 +1,62 @@
+// Dynamically create a link element for CSS and append it to the head
+var link = document.createElement('link');
+link.rel = 'stylesheet';
+link.type = 'text/css';
+link.href = 'styles.css'; // Replace 'styles.css' with the path to your CSS file
+document.head.appendChild(link);
+
 // Include jQuery directly within the clubs.js file
 var script = document.createElement('script');
 script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js';
 script.onload = function() {
     // Once jQuery is loaded, execute the rest of the script
     $(document).ready(function() {
+        let clubsData = [];
 
         // Function to create and display club cards
         function displayClub(club) {
-            // Create card element
             var card = document.createElement('div');
             card.className = 'club-card';
 
-            // Create image element
             var image = document.createElement('img');
             image.src = club.featuredImageURL;
             image.className = 'club-image';
             card.appendChild(image);
 
-            // Create name element
+            var content = document.createElement('div');
+            content.className = 'club-content';
+
             var name = document.createElement('h3');
             name.textContent = club.name;
-            card.appendChild(name);
+            content.appendChild(name);
 
-            // Create country name element
             var countryName = document.createElement('p');
             countryName.textContent = club.countryName;
-            card.appendChild(countryName);
+            content.appendChild(countryName);
 
-            // Append card to the clubs container
-            var clubsContainer = document.getElementById('courses-container');
-            clubsContainer.appendChild(card);
+            card.appendChild(content);
+            document.getElementById('courses-container').appendChild(card);
         }
 
-        // CSS styles for club cards
-        var clubStyles = `
-            /* Club container styles */
-            #courses-container {
-                display: grid;
-                grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-                gap: 16px;
-                padding: 16px;
-            }
+        function adjustContainerHeight(container) {
+            var cards = container.getElementsByClassName('club-card');
+            var numberOfCards = cards.length;
+            var cardHeight = cards[0]?.offsetHeight || 300;
+            var gap = 16;
+            var rows = Math.ceil(numberOfCards / 3);
+            var totalHeight = rows * (cardHeight + gap) - gap;
+            container.style.height = totalHeight + 'px';
+            container.style.setProperty('height', 'auto', 'important');
+        }
 
-            /* Club card styles */
-            .club-card {
-                padding: 16px;
-                background-color: #f8f8f8;
-                border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                transition: transform 0.2s;
-            }
-
-            .club-card:hover {
-                transform: translateY(-4px);
-            }
-
-            .club-card img {
-                width: 100%;
-                height: auto;
-                border-radius: 8px;
-                margin-bottom: 12px;
-            }
-
-            .club-card h3 {
-                margin-top: 0;
-                margin-bottom: 8px;
-                font-size: 1.25rem;
-            }
-
-            .club-card p {
-                margin: 0;
-                font-size: 1rem;
-                color: #666;
-            }
-        `;
-
-        // Create a <style> element and append CSS styles to it
-        var styleElement = document.createElement('style');
-        styleElement.textContent = clubStyles;
-
-        // Append the <style> element to the document's <head>
-        document.head.appendChild(styleElement);
-
-        // Function to fetch clubs from Firestore using a Cloud Function
         function fetchClubs() {
             $.ajax({
-                url: 'https://asia-southeast1-dragon-golf-international.cloudfunctions.net/getCourses', // Update with your Cloud Function URL
+                url: 'https://asia-southeast1-dragon-golf-international.cloudfunctions.net/getCourses',
                 method: 'GET',
                 success: function(data) {
-                    data.forEach(club => {
-                        displayClub(club);
-                    });
+                    clubsData = data;
+                    displayClubsByCountry('all');
+                    updateFilterChips();
                 },
                 error: function(error) {
                     console.error('Error fetching clubs:', error);
@@ -98,7 +64,38 @@ script.onload = function() {
             });
         }
 
-        // Fetch clubs on document ready
+        function displayClubsByCountry(country) {
+            var coursesContainer = document.getElementById('courses-container');
+            coursesContainer.innerHTML = '';
+            var filteredClubs = country === 'all' ? clubsData : clubsData.filter(club => club.countryName === country);
+            filteredClubs.forEach(displayClub);
+            adjustContainerHeight(coursesContainer);
+        }
+
+        function updateFilterChips() {
+            const countryCount = clubsData.reduce((acc, club) => {
+                acc[club.countryName] = (acc[club.countryName] || 0) + 1;
+                return acc;
+            }, {});
+
+            $('.filter-chip').each(function() {
+                var country = $(this).data('country');
+                if (country === 'all') {
+                    $(this).text(`All (${clubsData.length})`);
+                } else {
+                    var count = countryCount[country] || 0;
+                    $(this).text(`${country} (${count})`);
+                }
+            });
+        }
+
+        $('.filter-chip').click(function() {
+            $('.filter-chip').removeClass('selected');
+            $(this).addClass('selected');
+            var country = $(this).data('country');
+            displayClubsByCountry(country);
+        });
+
         fetchClubs();
     });
 };
