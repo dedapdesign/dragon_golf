@@ -1,16 +1,9 @@
-// Dynamically create a link element for CSS and append it to the head
-var link = document.createElement('link');
-link.rel = 'stylesheet';
-link.type = 'text/css';
-link.href = '/styles.css'; // Replace 'styles.css' with the path to your CSS file
-document.head.appendChild(link);
-
-// Include jQuery directly within the clubs.js file
+// Include jQuery directly within the script
 var script = document.createElement('script');
 script.src = 'https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js';
 script.onload = function() {
-    // Once jQuery is loaded, execute the rest of the script
     $(document).ready(function() {
+        console.log("DOM is fully loaded and parsed");
         let clubsData = [];
 
         // Function to create and display club cards
@@ -55,8 +48,12 @@ script.onload = function() {
                 method: 'GET',
                 success: function(data) {
                     clubsData = data;
+                    console.log("Clubs data fetched successfully");
+
+                    // Create filter chips dynamically based on countries
+                    createFilterChips(clubsData);
+
                     displayClubsByCountry('all');
-                    updateFilterChips();
                 },
                 error: function(error) {
                     console.error('Error fetching clubs:', error);
@@ -64,38 +61,137 @@ script.onload = function() {
             });
         }
 
-        function displayClubsByCountry(country) {
-            var coursesContainer = document.getElementById('courses-container');
-            coursesContainer.innerHTML = '';
-            var filteredClubs = country === 'all' ? clubsData : clubsData.filter(club => club.countryName === country);
-            filteredClubs.forEach(displayClub);
-            adjustContainerHeight(coursesContainer);
-        }
+        // Function to create filter chips based on countries in data
+        function createFilterChips(data) {
+            var filterBar = document.createElement('div');
+            filterBar.className = 'filter-chips';
 
-        function updateFilterChips() {
-            const countryCount = clubsData.reduce((acc, club) => {
-                acc[club.countryName] = (acc[club.countryName] || 0) + 1;
-                return acc;
-            }, {});
+            // Add 'All' filter chip
+            var allChip = document.createElement('div');
+            allChip.className = 'filter-chip selected';
+            allChip.dataset.country = 'all';
+            allChip.textContent = 'All';
+            filterBar.appendChild(allChip);
 
-            $('.filter-chip').each(function() {
-                var country = $(this).data('country');
-                if (country === 'all') {
-                    $(this).text(`All (${clubsData.length})`);
-                } else {
-                    var count = countryCount[country] || 0;
-                    $(this).text(`${country} (${count})`);
-                }
+            // Create chips for unique countries
+            var uniqueCountries = new Set();
+            data.forEach(club => uniqueCountries.add(club.countryName));
+            uniqueCountries.forEach(country => {
+                var chip = document.createElement('div');
+                chip.className = 'filter-chip';
+                chip.dataset.country = country;
+                chip.textContent = country;
+                filterBar.appendChild(chip);
+            });
+
+            // Append the filterBar to the filter-bar div
+            $('#filter-bar').append(filterBar);
+
+            // Add event listener to filter chips
+            $('.filter-chips').on('click', '.filter-chip', function() {
+                var country = $(this).data('country'); // Get the country from the clicked chip
+                $('.filter-chip').removeClass('selected');
+                $(this).addClass('selected');
+                displayClubsByCountry(country);
             });
         }
 
-        $('.filter-chip').click(function() {
-            $('.filter-chip').removeClass('selected');
-            $(this).addClass('selected');
-            var country = $(this).data('country');
-            displayClubsByCountry(country);
-        });
+        function displayClubsByCountry(country) {
+            var coursesContainer = document.getElementById('courses-container');
+            coursesContainer.innerHTML = ''; // Clear the container
+            var filteredClubs = country === 'all' ? clubsData : clubsData.filter(club => club.countryName === country);
+            filteredClubs.forEach(displayClub); // Display the filtered clubs
+            adjustContainerHeight(coursesContainer);
+        }
 
+        // Add CSS styles
+        function addCSSStyles() {
+            var styles = `
+                /* Filter chip styles */
+                .filter-chips {
+                    display: flex;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                    gap: 4px;
+                    padding: 16px;
+                }
+
+                .filter-chip {
+                    background-color: transparent;
+                    color: #113074;
+                    padding: 8px 16px;
+                    margin: 2px;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    border: 2px solid #113074;
+                    transition: background-color 0.3s;
+                }
+
+                .filter-chip.selected {
+                    background-color: #113074;
+                    color: #fff;
+                }
+
+                /* Club container styles */
+                #courses-container {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                    gap: 16px;
+                    padding: 16px;
+                }
+
+                /* Club card styles */
+                .club-card {
+                    border-radius: 8px;
+                    transition: transform 0.2s;
+                    height: 220px;
+                    display: flex;
+                    flex-direction: column;
+                    overflow: hidden;
+                }
+
+                .club-card:hover {
+                    transform: translateY(-4px);
+                }
+
+                .club-card img {
+                    width: 100%;
+                    height: 150px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                }
+
+                .club-content {
+                    padding: 8px;
+                    flex-grow: 1;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: flex-start;
+                    font-family: "Inter", sans-serif;
+                }
+
+                .club-card h3 {
+                    margin: 0;
+                    font-size: 0.9rem;
+                    padding-bottom: 3px;
+                    color: #113074;
+                    line-height: 1rem;
+                    font-weight: 600;
+                }
+
+                .club-card p {
+                    margin: 0;
+                    font-size: 0.8rem;
+                    color: #113074;
+                }
+            `;
+            var styleSheet = document.createElement("style");
+            styleSheet.type = "text/css";
+            styleSheet.innerText = styles;
+            document.head.appendChild(styleSheet);
+        }
+
+        addCSSStyles();
         fetchClubs();
     });
 };
